@@ -1,0 +1,11 @@
+etcd:
+  endpoints:
+    - 10.150.30.17:2379
+    - 10.150.30.18:2379
+    - 10.150.30.19:2379
+  baseKeyToWrite: /nate/etcdclient
+  timeout:        5
+  sleepSeconds:   2   # var not used currently
+  cert-ca:        support\ca.crt
+  peer-cert:      support\peer.crt
+  peer-key:       support\peer.key

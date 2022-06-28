@@ -1,0 +1,7 @@
+.vscode/*
+*.exe
+bin/
+support/ca.crt
+support/peer.crt
+support/peer.key
+__debug_bin
