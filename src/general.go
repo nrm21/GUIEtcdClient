@@ -60,22 +60,34 @@ func testSockConnect(host string, port string) bool {
 	}
 }
 
+// If the first character in a keyname is a '/' we remove it.  This should provite consistancy
+// for us in modifying and deleting subkeys of the base key.
+func normalizeKeyNames(value string) string {
+	if value[:1] == "/" {
+		value = value[1:len(value)]
+	}
+
+	return value
+}
+
+// Make map data pretty preintable and remove base key from from fromt of all keys
+func parseMapToString(config *Config, values map[string]string) string {
+	msg := ""
+	for k, v := range values {
+		// remove BaseKeyToWrite
+		k = strings.Replace(k, config.Etcd.BaseKeyToWrite+"/", "", 1)
+
+		msg += k + ": " + v + "\r\n"
+	}
+
+	return msg
+}
+
 // Continuously prints read variables to screen except the ones we wrote
 func readEtcdContinuously(sendToMsgBoxCh chan string, config *Config, keyWritten string) {
 	for {
-		values := ReadFromEtcd(*config, config.Etcd.BaseKeyToWrite)
-
-		// put them in a string for printing
-		msg := ""
-		for k, v := range values {
-			// remove config.Etcd.BaseKeyToWrite
-			k = strings.Replace(k, config.Etcd.BaseKeyToWrite+"/", "", 1)
-
-			msg += k + ": " + v + "\r\n"
-		}
-
-		// and send into channel
-		sendToMsgBoxCh <- msg
+		values := ReadFromEtcd(config, config.Etcd.BaseKeyToWrite)
+		sendToMsgBoxCh <- parseMapToString(config, values)
 	}
 }
 

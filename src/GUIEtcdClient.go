@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/lxn/walk"
@@ -73,7 +72,12 @@ func main() {
 								Text:    "Modify",
 								OnClicked: func() {
 									go func() {
-										WriteToEtcd(config, config.Etcd.BaseKeyToWrite+"/"+modifyKeyBox.Text(), modifyValueBox.Text())
+										WriteToEtcd(&config, config.Etcd.BaseKeyToWrite+"/"+
+											normalizeKeyNames(modifyKeyBox.Text()), modifyValueBox.Text())
+
+										values := ReadFromEtcd(&config, config.Etcd.BaseKeyToWrite)
+										resultMsgBox.SetText(parseMapToString(&config, values))
+										modifyKeyBox.SetText("")
 										modifyValueBox.SetText("")
 									}()
 								},
@@ -84,7 +88,10 @@ func main() {
 								Text:    "Delete",
 								OnClicked: func() {
 									go func() {
-										DeleteFromEtcd(config, config.Etcd.BaseKeyToWrite+"/"+modifyKeyBox.Text())
+										DeleteFromEtcd(&config, config.Etcd.BaseKeyToWrite+"/"+normalizeKeyNames(modifyKeyBox.Text()))
+
+										values := ReadFromEtcd(&config, config.Etcd.BaseKeyToWrite)
+										resultMsgBox.SetText(parseMapToString(&config, values))
 										modifyKeyBox.SetText("")
 										modifyValueBox.SetText("")
 									}()
@@ -115,12 +122,10 @@ func main() {
 							PushButton{
 								MinSize: Size{100, 20},
 								MaxSize: Size{100, 20},
-								Text:    "Send",
+								Text:    "Not used",
 								OnClicked: func() {
 									go func() {
-										valueToWrite := fmt.Sprintf("%s", chatTextBox.Text()+"\r\n")
-										WriteToEtcd(config, config.Etcd.BaseKeyToWrite, valueToWrite)
-										chatTextBox.SetText("")
+										// TODO
 									}()
 								},
 							},
