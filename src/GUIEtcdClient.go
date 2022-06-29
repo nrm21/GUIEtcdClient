@@ -13,9 +13,8 @@ var clientID, exePath string
 
 // Program entry point
 func main() {
-	var modifyValueBox, modifyKeyBox *walk.TextEdit
-	var resultMsgBox *walk.TextEdit
-	var chatTextBox *walk.LineEdit
+	var modifyValueBox, modifyKeyBox, resultMsgBox *walk.TextEdit
+	var importExportFileBox *walk.LineEdit
 
 	// Get CWD and use it to find if we are in ./src or base of project, then normalize it
 	// by removing '/src' from end of path so we can find where our support files are located
@@ -88,8 +87,10 @@ func main() {
 								Text:    "Delete",
 								OnClicked: func() {
 									go func() {
-										DeleteFromEtcd(&config, config.Etcd.BaseKeyToWrite+"/"+normalizeKeyNames(modifyKeyBox.Text()))
-
+										numDeleted := DeleteFromEtcd(&config, config.Etcd.BaseKeyToWrite+"/"+normalizeKeyNames(modifyKeyBox.Text()))
+										if numDeleted < 1 {
+											walk.MsgBox(nil, "Error", "No records found", walk.MsgBoxIconInformation)
+										}
 										values := ReadFromEtcd(&config, config.Etcd.BaseKeyToWrite)
 										resultMsgBox.SetText(parseMapToString(&config, values))
 										modifyKeyBox.SetText("")
@@ -116,18 +117,32 @@ func main() {
 					ScrollView{
 						Layout: HBox{MarginsZero: true},
 						Children: []Widget{
-							LineEdit{
-								AssignTo: &chatTextBox, Text: "",
-							},
 							PushButton{
 								MinSize: Size{100, 20},
 								MaxSize: Size{100, 20},
-								Text:    "Not used",
+								Text:    "Export DB",
 								OnClicked: func() {
 									go func() {
 										// TODO
 									}()
 								},
+							},
+							PushButton{
+								MinSize: Size{100, 20},
+								MaxSize: Size{100, 20},
+								Text:    "Import DB",
+								OnClicked: func() {
+									go func() {
+										// TODO
+									}()
+								},
+							},
+							TextLabel{
+								Text: "Import/Export File: ",
+							},
+							LineEdit{
+								AssignTo: &importExportFileBox,
+								Text:     "",
 							},
 							TextLabel{
 								Text: "Version: " + version,

@@ -69,14 +69,17 @@ func WriteToEtcd(config *Config, keyToWrite string, valueToWrite string) {
 	}
 }
 
-// DeleteFromEtcd delete the given key from etcd
-func DeleteFromEtcd(config *Config, keyToDelete string) {
+// Deletes the given key from etcd and returns the amount deleted
+func DeleteFromEtcd(config *Config, keyToDelete string) int64 {
+	var response *clientv3.DeleteResponse
 	cli := connToEtcd(*config)
 	defer cli.Close()
 
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	_, err := cli.Delete(ctx, keyToDelete)
+	response, err := cli.Delete(ctx, keyToDelete)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	return response.Deleted
 }
