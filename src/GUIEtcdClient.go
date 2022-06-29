@@ -19,11 +19,11 @@ func main() {
 	// Get CWD and use it to find if we are in ./src or base of project, then normalize it
 	// by removing '/src' from end of path so we can find where our support files are located
 	exePath, _ = os.Getwd()
-	if exePath[len(exePath)-4:] == "\\src" {
+	if exePath[len(exePath)-4:] == "\\src" || exePath[len(exePath)-4:] == "\\bin" {
 		exePath = exePath[:len(exePath)-4]
 	}
 
-	config, err := getConfigContentsFromYaml(exePath + "/support/config.yml")
+	config, err := getConfigContentsFromYaml(exePath + "\\config.yml")
 	if err != nil {
 		walk.MsgBox(nil, "Fatal Error", "Fatal: "+err.Error(), walk.MsgBoxIconError)
 		os.Exit(1)

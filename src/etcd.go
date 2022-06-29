@@ -10,13 +10,12 @@ import (
 	"go.etcd.io/etcd/clientv3"
 )
 
-// ConnToEtcd connects to an ETCD database using TLS settings and returns the
-// connection object
+// ConnToEtcd connects to an ETCD database using TLS settings and returns the connection object
 func connToEtcd(config Config) *clientv3.Client {
 	tlsInfo := transport.TLSInfo{
-		CertFile:      exePath + "\\" + config.Etcd.PeerCert,
-		KeyFile:       exePath + "\\" + config.Etcd.PeerKey,
-		TrustedCAFile: exePath + "\\" + config.Etcd.CertCa,
+		CertFile:      config.Etcd.CertPath + "\\peer.crt",
+		KeyFile:       config.Etcd.CertPath + "\\peer.key",
+		TrustedCAFile: config.Etcd.CertPath + "\\ca.crt",
 	}
 	tlsConfig, err := tlsInfo.ClientConfig()
 	if err != nil {

@@ -18,9 +18,7 @@ type Config struct {
 		BaseKeyToWrite string        `yaml:"baseKeyToWrite"`
 		Timeout        int           `yaml:"timeout"`
 		SleepSeconds   time.Duration `yaml:"sleepSeconds"`
-		CertCa         string        `yaml:"cert-ca"`
-		PeerCert       string        `yaml:"peer-cert"`
-		PeerKey        string        `yaml:"peer-key"`
+		CertPath       string        `yaml:"certpath"`
 	}
 }
 
