@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/lxn/walk"
+	"github.com/nrm21/EtcdChat/src/myetcd"
 	"github.com/nrm21/support"
 	"gopkg.in/yaml.v2"
 )
@@ -82,19 +83,19 @@ func parseMapToString(config *Config, values map[string]string) string {
 }
 
 // Continuously prints read variables to screen except the ones we wrote
-func readEtcdContinuously(sendToMsgBoxCh chan string, config *Config, keyWritten string) {
+func readEtcdContinuously(sendToMsgBoxCh chan string, config *Config) {
 	for {
-		values := ReadFromEtcd(config, config.Etcd.BaseKeyToWrite)
+		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
 		sendToMsgBoxCh <- parseMapToString(config, values)
 	}
 }
 
 // Is run by main(), loops forever waiting for a response to the channel
-func listenForResponse(config *Config, resultMsgBox *walk.TextEdit, keyToWrite string) {
+func listenForResponse(config *Config, resultMsgBox *walk.TextEdit) {
 	sendToMsgBoxCh := make(chan string)
 
 	// This needs its own thread since it also loops forever
-	go readEtcdContinuously(sendToMsgBoxCh, config, keyToWrite)
+	go readEtcdContinuously(sendToMsgBoxCh, config)
 
 	for { // loop forever (user expected to break)
 		msg := <-sendToMsgBoxCh

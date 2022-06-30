@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"os"
 
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
+	"github.com/nrm21/EtcdChat/src/myetcd"
 )
 
 var version string // to be auto-added with -ldflags at build time
@@ -24,15 +26,16 @@ func main() {
 	}
 
 	config, err := getConfigContentsFromYaml(exePath + "\\config.yml")
+	// if the config file doesnt exist
 	if err != nil {
 		walk.MsgBox(nil, "Fatal Error", "Fatal: "+err.Error(), walk.MsgBoxIconError)
 		os.Exit(1)
 	}
 
-	// If the config file doesn't exist this will run from config file
-	// if os.IsNotExist(err) {
-	// 	walk.MsgBox(mw, "Error", "The proper config file or registry keys do not exist", walk.MsgBoxIconError)
-	// }
+	// if the cert path doesnt exist
+	if _, err := os.Stat(config.Etcd.CertPath); errors.Is(err, os.ErrNotExist) {
+		walk.MsgBox(nil, "Fatal Error", "Fatal: "+err.Error(), walk.MsgBoxIconError)
+	}
 
 	// if localhost is open use that endpoint instead
 	if testSockConnect("127.0.0.1", "2379") {
@@ -71,10 +74,10 @@ func main() {
 								Text:    "Modify",
 								OnClicked: func() {
 									go func() {
-										WriteToEtcd(&config, config.Etcd.BaseKeyToWrite+"/"+
+										myetcd.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite+"/"+
 											normalizeKeyNames(modifyKeyBox.Text()), modifyValueBox.Text())
 
-										values := ReadFromEtcd(&config, config.Etcd.BaseKeyToWrite)
+										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
 										resultMsgBox.SetText(parseMapToString(&config, values))
 										modifyKeyBox.SetText("")
 										modifyValueBox.SetText("")
@@ -87,11 +90,11 @@ func main() {
 								Text:    "Delete",
 								OnClicked: func() {
 									go func() {
-										numDeleted := DeleteFromEtcd(&config, config.Etcd.BaseKeyToWrite+"/"+normalizeKeyNames(modifyKeyBox.Text()))
+										numDeleted := myetcd.DeleteFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite+"/"+normalizeKeyNames(modifyKeyBox.Text()))
 										if numDeleted < 1 {
 											walk.MsgBox(nil, "Error", "No records found", walk.MsgBoxIconInformation)
 										}
-										values := ReadFromEtcd(&config, config.Etcd.BaseKeyToWrite)
+										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
 										resultMsgBox.SetText(parseMapToString(&config, values))
 										modifyKeyBox.SetText("")
 										modifyValueBox.SetText("")
@@ -155,7 +158,7 @@ func main() {
 	}.Create()
 
 	// Start listening for a response
-	go listenForResponse(&config, resultMsgBox, config.Etcd.BaseKeyToWrite)
+	go listenForResponse(&config, resultMsgBox)
 
 	mw.Run()
 }
