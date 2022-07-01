@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"os"
+	"time"
 
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -10,12 +11,14 @@ import (
 )
 
 var version string // to be auto-added with -ldflags at build time
+var lastUpdate time.Time
 var mw *walk.MainWindow
 var clientID, exePath string
 
 // Program entry point
 func main() {
 	var modifyValueBox, modifyKeyBox, resultMsgBox *walk.TextEdit
+	var updateTimeTextBox *walk.TextLabel
 	var importExportFileBox *walk.LineEdit
 
 	// Get CWD and use it to find if we are in ./src or base of project, then normalize it
@@ -56,18 +59,6 @@ func main() {
 					ScrollView{
 						Layout: HBox{MarginsZero: true},
 						Children: []Widget{
-							TextLabel{
-								Text: "Key:",
-							},
-							TextEdit{
-								AssignTo: &modifyKeyBox,
-							},
-							TextLabel{
-								Text: "Value:",
-							},
-							TextEdit{
-								AssignTo: &modifyValueBox,
-							},
 							PushButton{
 								MinSize: Size{100, 20},
 								MaxSize: Size{100, 20},
@@ -101,6 +92,29 @@ func main() {
 									}()
 								},
 							},
+							TextLabel{
+								Text: "Key:",
+							},
+							TextEdit{
+								AssignTo: &modifyKeyBox,
+							},
+							TextLabel{
+								Text: "Value:",
+							},
+							TextEdit{
+								AssignTo: &modifyValueBox,
+							},
+							PushButton{
+								MinSize: Size{100, 20},
+								MaxSize: Size{100, 20},
+								Text:    "Refresh",
+								OnClicked: func() {
+									go func() {
+										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
+										resultMsgBox.SetText(parseMapToString(&config, values))
+									}()
+								},
+							},
 						},
 					},
 				},
@@ -120,6 +134,10 @@ func main() {
 					ScrollView{
 						Layout: HBox{MarginsZero: true},
 						Children: []Widget{
+							TextLabel{
+								AssignTo: &updateTimeTextBox,
+								Text:     "Last update: ",
+							},
 							PushButton{
 								MinSize: Size{100, 20},
 								MaxSize: Size{100, 20},
@@ -157,8 +175,12 @@ func main() {
 		},
 	}.Create()
 
-	// Start listening for a response
-	go listenForResponse(&config, resultMsgBox)
+	sendToMsgBoxCh := make(chan map[string]string)
+
+	// These need their own thread since they also loop forever
+	go refreshUpdateTime(updateTimeTextBox)
+	go readEtcdContinuously(&config, sendToMsgBoxCh)
+	go mainLoop(&config, sendToMsgBoxCh, resultMsgBox)
 
 	mw.Run()
 }

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"time"
 
@@ -69,39 +71,52 @@ func normalizeKeyNames(value string) string {
 	return value
 }
 
-// Make map data pretty preintable and remove base key from from fromt of all keys
+// Make map data pretty printable, alphabetically sorted and remove base key from from fromt of all keys
 func parseMapToString(config *Config, values map[string]string) string {
-	msg := ""
+	orderedMsg := ""
+	var msg []string
+
 	for k, v := range values {
 		// remove BaseKeyToWrite
 		k = strings.Replace(k, config.Etcd.BaseKeyToWrite+"/", "", 1)
-
-		msg += k + ": " + v + "\r\n"
+		msg = append(msg, k+": "+v+"\r\n")
+	}
+	sort.Strings(msg)
+	for _, v := range msg {
+		orderedMsg += v
 	}
 
-	return msg
+	// Every time we run this we send to chan to display on screen, so lets reset the update timer here also
+	lastUpdate = time.Now()
+
+	return orderedMsg
 }
 
-// Continuously prints read variables to screen except the ones we wrote
-func readEtcdContinuously(sendToMsgBoxCh chan string, config *Config) {
+// Run by main(), updates the text box until program exit
+func refreshUpdateTime(updateTimeTextBox *walk.TextLabel) {
+	for {
+		updateTimeTextBox.SetText("Last update: " + fmt.Sprintf("%.0f", time.Since(lastUpdate).Seconds()))
+		time.Sleep(500 * time.Millisecond) // just for human readability, dont refresh this too often
+	}
+}
+
+// Run by main(), continuously prints read variables to screen except the ones we wrote
+func readEtcdContinuously(config *Config, sendToMsgBoxCh chan map[string]string) {
 	for {
 		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
-		sendToMsgBoxCh <- parseMapToString(config, values)
+		sendToMsgBoxCh <- values
 	}
 }
 
-// Is run by main(), loops forever waiting for a response to the channel
-func listenForResponse(config *Config, resultMsgBox *walk.TextEdit) {
-	sendToMsgBoxCh := make(chan string)
-
-	// This needs its own thread since it also loops forever
-	go readEtcdContinuously(sendToMsgBoxCh, config)
-
-	for { // loop forever (user expected to break)
-		msg := <-sendToMsgBoxCh
-		// Append to the end of the message thats already there
-		// msg = resultMsgBox.Text() + msg
+// Run by main(), waits for a response to the channel to update the message box until program exit
+func mainLoop(config *Config, sendToMsgBoxCh chan map[string]string, resultMsgBox *walk.TextEdit) {
+	for {
+		msg := parseMapToString(config, <-sendToMsgBoxCh)
 		resultMsgBox.SetText(msg)
-		time.Sleep(config.Etcd.SleepSeconds * time.Second)
+
+		// sleep until we haven't updated for more than the sleep duration
+		for time.Since(lastUpdate).Seconds() < float64(config.Etcd.SleepSeconds) {
+			time.Sleep(1 * time.Second)
+		}
 	}
 }
