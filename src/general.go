@@ -105,18 +105,18 @@ func readEtcdContinuously(config *Config, sendToMsgBoxCh chan map[string]string)
 	for {
 		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
 		sendToMsgBoxCh <- values
+
+		// sleep until we haven't updated for more than the sleep duration
+		for time.Since(lastUpdate).Seconds() < float64(config.Etcd.SleepSeconds) {
+			time.Sleep(1 * time.Second)
+		}
 	}
 }
 
 // Run by main(), waits for a response to the channel to update the message box until program exit
 func mainLoop(config *Config, sendToMsgBoxCh chan map[string]string, resultMsgBox *walk.TextEdit) {
 	for {
-		msg := parseMapToString(config, <-sendToMsgBoxCh)
+		msg := parseMapToString(config, <-sendToMsgBoxCh) // will wait for sending channel
 		resultMsgBox.SetText(msg)
-
-		// sleep until we haven't updated for more than the sleep duration
-		for time.Since(lastUpdate).Seconds() < float64(config.Etcd.SleepSeconds) {
-			time.Sleep(1 * time.Second)
-		}
 	}
 }

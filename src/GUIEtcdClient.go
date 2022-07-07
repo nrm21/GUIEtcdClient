@@ -125,7 +125,10 @@ func main() {
 						AssignTo: &resultMsgBox,
 						ReadOnly: true,
 						MinSize:  Size{600, 630},
-						Font:     Font{Family: "Ariel", PointSize: 12},
+						Font: Font{
+							Family:    "Ariel",
+							PointSize: 15,
+						},
 					},
 				},
 			},
