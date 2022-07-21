@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -97,6 +99,29 @@ func refreshUpdateTime(updateTimeTextBox *walk.TextLabel) {
 	for {
 		updateTimeTextBox.SetText("Last update: " + fmt.Sprintf("%.0f", time.Since(lastUpdate).Seconds()))
 		time.Sleep(500 * time.Millisecond) // just for human readability, dont refresh this too often
+	}
+}
+
+// Runs when we click either the export or import buttons at the bottom of GUI
+func dbImportExport(config *Config, filename, mode string) {
+	if filename == "" {
+		walk.MsgBox(nil, "Error", "Please put in a filename", walk.MsgBoxIconInformation)
+	} else {
+		if mode == "export" {
+			// read values from Etcd
+			values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
+			// and marshal them into JSON
+			filebytes, err := json.MarshalIndent(values, "", "   ")
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				// and write it to file
+				err = os.WriteFile(filename, filebytes, 0644)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+		}
 	}
 }
 

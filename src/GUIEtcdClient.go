@@ -147,7 +147,7 @@ func main() {
 								Text:    "Export DB",
 								OnClicked: func() {
 									go func() {
-										// TODO
+										dbImportExport(&config, importExportFileBox.Text(), "export")
 									}()
 								},
 							},
@@ -157,7 +157,7 @@ func main() {
 								Text:    "Import DB",
 								OnClicked: func() {
 									go func() {
-										// TODO
+										dbImportExport(&config, importExportFileBox.Text(), "import")
 									}()
 								},
 							},
