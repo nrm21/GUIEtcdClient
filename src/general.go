@@ -104,23 +104,41 @@ func refreshUpdateTime(updateTimeTextBox *walk.TextLabel) {
 
 // Runs when we click either the export or import buttons at the bottom of GUI
 func dbImportExport(config *Config, filename, mode string) {
-	if filename == "" {
-		walk.MsgBox(nil, "Error", "Please put in a filename", walk.MsgBoxIconInformation)
-	} else {
-		if mode == "export" {
-			// read values from Etcd
-			values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
-			// and marshal them into JSON
-			filebytes, err := json.MarshalIndent(values, "", "   ")
+	if mode == "import" {
+		if filename == "" {
+			walk.MsgBox(nil, "Error", "Please put in a filename", walk.MsgBoxIconError)
+		}
+		// read the bytes from file
+		filebytes, err := os.ReadFile(filename)
+		if err != nil {
+			fmt.Println(err)
+		}
+		// and unmarshal the values from JSON
+		values := make(map[string]string)
+		err = json.Unmarshal(filebytes, &values)
+		if err != nil {
+			fmt.Println(err)
+		}
+		// and write them to Etcd
+		for key, value := range values {
+			myetcd.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, key, value)
+		}
+	} else if mode == "export" {
+		path, _ := os.Getwd()
+		filename = path + "\\backup.json"
+
+		// read values from Etcd and marshal them into JSON
+		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
+		filebytes, err := json.MarshalIndent(values, "", "   ")
+
+		if err != nil {
+			fmt.Println(err)
+		} else { // and write it to file
+			err = os.WriteFile(filename, filebytes, 0644)
 			if err != nil {
 				fmt.Println(err)
-			} else {
-				// and write it to file
-				err = os.WriteFile(filename, filebytes, 0644)
-				if err != nil {
-					fmt.Println(err)
-				}
 			}
+			walk.MsgBox(nil, "Info", "Backup file created", walk.MsgBoxIconInformation)
 		}
 	}
 }
