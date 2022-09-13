@@ -94,14 +94,6 @@ func parseMapToString(config *Config, values map[string]string) string {
 	return orderedMsg
 }
 
-// Run by main(), updates the text box until program exit
-func refreshUpdateTime(updateTimeTextBox *walk.TextLabel) {
-	for {
-		updateTimeTextBox.SetText("Last update: " + fmt.Sprintf("%.0f", time.Since(lastUpdate).Seconds()))
-		time.Sleep(500 * time.Millisecond) // just for human readability, dont refresh this too often
-	}
-}
-
 // Runs when we click either the export or import buttons at the bottom of GUI
 func dbImportExport(config *Config, filename, mode string) {
 	if mode == "import" {
@@ -140,6 +132,14 @@ func dbImportExport(config *Config, filename, mode string) {
 			}
 			walk.MsgBox(nil, "Info", "Backup file created", walk.MsgBoxIconInformation)
 		}
+	}
+}
+
+// Run by main(), updates the text box until program exit
+func refreshUpdateTime(updateTimeTextBox *walk.TextLabel) {
+	for {
+		updateTimeTextBox.SetText("Last update: " + fmt.Sprintf("%.0f", time.Since(lastUpdate).Seconds()))
+		time.Sleep(500 * time.Millisecond) // just for human readability, dont refresh this too often
 	}
 }
 
