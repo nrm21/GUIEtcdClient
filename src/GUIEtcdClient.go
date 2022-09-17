@@ -17,7 +17,7 @@ var clientID, exePath string
 
 // Program entry point
 func main() {
-	var modifyValueBox, modifyKeyBox, resultMsgBox *walk.TextEdit
+	var modifyValueBox, modifyKeyBox, resultMsgBox, baseKeyToUseBox *walk.TextEdit
 	var updateTimeTextBox *walk.TextLabel
 	var importExportFileBox *walk.LineEdit
 
@@ -65,10 +65,10 @@ func main() {
 								Text:    "Modify",
 								OnClicked: func() {
 									go func() {
-										myetcd.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite+"/"+
+										myetcd.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+
 											normalizeKeyNames(modifyKeyBox.Text()), modifyValueBox.Text())
 
-										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
+										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
 										resultMsgBox.SetText(parseMapToString(&config, values))
 										modifyKeyBox.SetText("")
 										modifyValueBox.SetText("")
@@ -81,11 +81,11 @@ func main() {
 								Text:    "Delete",
 								OnClicked: func() {
 									go func() {
-										numDeleted := myetcd.DeleteFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite+"/"+normalizeKeyNames(modifyKeyBox.Text()))
+										numDeleted := myetcd.DeleteFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+normalizeKeyNames(modifyKeyBox.Text()))
 										if numDeleted < 1 {
 											walk.MsgBox(nil, "Error", "No records found", walk.MsgBoxIconInformation)
 										}
-										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
+										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
 										resultMsgBox.SetText(parseMapToString(&config, values))
 										modifyKeyBox.SetText("")
 										modifyValueBox.SetText("")
@@ -110,9 +110,33 @@ func main() {
 								Text:    "Refresh",
 								OnClicked: func() {
 									go func() {
-										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
+										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
 										resultMsgBox.SetText(parseMapToString(&config, values))
 									}()
+								},
+							},
+						},
+					},
+				},
+			},
+			HSplitter{
+				Children: []Widget{
+					ScrollView{
+						Layout: HBox{MarginsZero: true},
+						Children: []Widget{
+							TextLabel{
+								Text: "Base key to use:",
+							},
+							TextEdit{
+								AssignTo: &baseKeyToUseBox,
+								Text:     config.Etcd.BaseKeyToUse,
+							},
+							PushButton{
+								MinSize: Size{100, 20},
+								MaxSize: Size{100, 20},
+								Text:    "Refresh",
+								OnClicked: func() {
+									// *** NOT YET IMPLEMENTED ***
 								},
 							},
 						},
@@ -124,7 +148,8 @@ func main() {
 					TextEdit{
 						AssignTo: &resultMsgBox,
 						ReadOnly: true,
-						MinSize:  Size{600, 630},
+						MinSize:  Size{600, 595},
+						VScroll:  true,
 						Font: Font{
 							Family:    "Ariel",
 							PointSize: 15,

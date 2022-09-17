@@ -20,11 +20,11 @@ import (
 type Config struct {
 	Etcd struct {
 		// var name has to be uppercase here or it won't work
-		Endpoints      []string      `yaml:"endpoints"`
-		BaseKeyToWrite string        `yaml:"baseKeyToWrite"`
-		Timeout        int           `yaml:"timeout"`
-		SleepSeconds   time.Duration `yaml:"sleepSeconds"`
-		CertPath       string        `yaml:"certpath"`
+		Endpoints    []string      `yaml:"endpoints"`
+		BaseKeyToUse string        `yaml:"baseKeyToUse"`
+		Timeout      int           `yaml:"timeout"`
+		SleepSeconds time.Duration `yaml:"sleepSeconds"`
+		CertPath     string        `yaml:"certpath"`
 	}
 }
 
@@ -124,7 +124,7 @@ func dbImportExport(config *Config, filename, mode string) {
 		filename = path + "\\backup.json"
 
 		// read values from Etcd and marshal them into JSON
-		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
+		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
 		filebytes, err := json.MarshalIndent(values, "", "   ")
 
 		if err != nil {
@@ -143,14 +143,14 @@ func dbImportExport(config *Config, filename, mode string) {
 func refreshUpdateTime(updateTimeTextBox *walk.TextLabel) {
 	for {
 		updateTimeTextBox.SetText("Last update: " + fmt.Sprintf("%.0f", time.Since(lastUpdate).Seconds()))
-		time.Sleep(500 * time.Millisecond) // just for human readability, dont refresh this too often
+		time.Sleep(500 * time.Millisecond) // just for human readability, dont refresh this too often to save on cpu
 	}
 }
 
 // Run by main(), continuously prints read variables to screen except the ones we wrote
 func readEtcdContinuously(config *Config, sendToMsgBoxCh chan map[string][]byte) {
 	for {
-		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
+		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
 		sendToMsgBoxCh <- values
 
 		// sleep until we haven't updated for more than the sleep duration

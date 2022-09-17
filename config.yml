@@ -3,7 +3,8 @@ etcd:
     - 10.150.30.17:2379
     - 10.150.30.18:2379
     - 10.150.30.19:2379
-  baseKeyToWrite: /nate
+  baseKeyToUse: /nate/CalcBandwidth
+  #baseKeyToUse: /registry/events
   timeout:        5
   sleepSeconds:   60
   certpath:       E:\Documents\_Nate\Computer Related\Private keys\Etcd Certs
