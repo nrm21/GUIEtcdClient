@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -74,14 +75,17 @@ func normalizeKeyNames(value string) string {
 }
 
 // Make map data pretty printable, alphabetically sorted and remove base key from from fromt of all keys
-func parseMapToString(config *Config, values map[string]string) string {
+func parseMapToString(config *Config, values map[string][]byte) string {
 	orderedMsg := ""
 	var msg []string
 
 	for k, v := range values {
-		// remove BaseKeyToWrite
-		k = strings.Replace(k, config.Etcd.BaseKeyToWrite+"/", "", 1)
-		msg = append(msg, k+": "+v+"\r\n")
+		// remove BaseKeyToUse
+		k = strings.Replace(k, config.Etcd.BaseKeyToUse+"/", "", 1)
+		// trim null bytes before sending to output (allows safe printing of message)
+		v = bytes.ReplaceAll(v, []byte("\x00"), []byte(" "))
+
+		msg = append(msg, k+": "+string(v)+"\r\n")
 	}
 	sort.Strings(msg)
 	for _, v := range msg {
@@ -144,7 +148,7 @@ func refreshUpdateTime(updateTimeTextBox *walk.TextLabel) {
 }
 
 // Run by main(), continuously prints read variables to screen except the ones we wrote
-func readEtcdContinuously(config *Config, sendToMsgBoxCh chan map[string]string) {
+func readEtcdContinuously(config *Config, sendToMsgBoxCh chan map[string][]byte) {
 	for {
 		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToWrite)
 		sendToMsgBoxCh <- values
@@ -157,7 +161,7 @@ func readEtcdContinuously(config *Config, sendToMsgBoxCh chan map[string]string)
 }
 
 // Run by main(), waits for a response to the channel to update the message box until program exit
-func mainLoop(config *Config, sendToMsgBoxCh chan map[string]string, resultMsgBox *walk.TextEdit) {
+func mainLoop(config *Config, sendToMsgBoxCh chan map[string][]byte, resultMsgBox *walk.TextEdit) {
 	for {
 		msg := parseMapToString(config, <-sendToMsgBoxCh) // will wait for sending channel
 		resultMsgBox.SetText(msg)

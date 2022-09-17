@@ -34,8 +34,8 @@ func connToEtcd(certPath *string, endpoints *[]string) *clientv3.Client {
 }
 
 // ReadFromEtcd reads all sub-prefixes from a given key and returns them in
-// a map[string]string structure
-func ReadFromEtcd(certPath *string, endpoints *[]string, keyToRead string) (map[string]string, error) {
+// a (string, byte array) map structure
+func ReadFromEtcd(certPath *string, endpoints *[]string, keyToRead string) (map[string][]byte, error) {
 	cli := connToEtcd(certPath, endpoints)
 	defer cli.Close()
 
@@ -48,10 +48,10 @@ func ReadFromEtcd(certPath *string, endpoints *[]string, keyToRead string) (map[
 	}
 
 	// convert their weird KV struct into generic map[string]string before return
-	answer := make(map[string]string)
+	answer := make(map[string][]byte)
 	for i := range response.Kvs {
 		keyval := string(response.Kvs[i].Key)
-		answer[keyval] = string(response.Kvs[i].Value)
+		answer[keyval] = response.Kvs[i].Value
 	}
 
 	return answer, nil

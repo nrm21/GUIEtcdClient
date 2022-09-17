@@ -178,7 +178,7 @@ func main() {
 		},
 	}.Create()
 
-	sendToMsgBoxCh := make(chan map[string]string)
+	sendToMsgBoxCh := make(chan map[string][]byte)
 
 	// These need their own thread since they also loop forever
 	go refreshUpdateTime(updateTimeTextBox)
