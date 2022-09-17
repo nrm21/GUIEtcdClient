@@ -125,7 +125,13 @@ func dbImportExport(config *Config, filename, mode string) {
 
 		// read values from Etcd and marshal them into JSON
 		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
-		filebytes, err := json.MarshalIndent(values, "", "   ")
+
+		// and convert bytes to string in new map before exporting
+		stringifiedValues := make(map[string]string)
+		for key, val := range values {
+			stringifiedValues[key] = string(val)
+		}
+		filebytes, err := json.MarshalIndent(stringifiedValues, "", "   ")
 
 		if err != nil {
 			fmt.Println(err)
@@ -139,6 +145,15 @@ func dbImportExport(config *Config, filename, mode string) {
 	}
 }
 
+// Anytime this is called it will read the current values from etcd for the
+// given basekey, and send them to the channel.  This should not need to be
+// run async since the mainloop() function is forever waiting for new things
+//  to come in from the channel
+func readValuesAndSendToMsgBox(config *Config, sendToMsgBoxCh chan map[string][]byte) {
+	values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
+	sendToMsgBoxCh <- values
+}
+
 // Run by main(), updates the text box until program exit
 func refreshUpdateTime(updateTimeTextBox *walk.TextLabel) {
 	for {
@@ -150,8 +165,7 @@ func refreshUpdateTime(updateTimeTextBox *walk.TextLabel) {
 // Run by main(), continuously prints read variables to screen except the ones we wrote
 func readEtcdContinuously(config *Config, sendToMsgBoxCh chan map[string][]byte) {
 	for {
-		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
-		sendToMsgBoxCh <- values
+		readValuesAndSendToMsgBox(config, sendToMsgBoxCh)
 
 		// sleep until we haven't updated for more than the sleep duration
 		for time.Since(lastUpdate).Seconds() < float64(config.Etcd.SleepSeconds) {

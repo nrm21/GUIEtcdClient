@@ -20,6 +20,7 @@ func main() {
 	var modifyValueBox, modifyKeyBox, resultMsgBox, baseKeyToUseBox *walk.TextEdit
 	var updateTimeTextBox *walk.TextLabel
 	var importExportFileBox *walk.LineEdit
+	sendToMsgBoxCh := make(chan map[string][]byte)
 
 	// Get CWD and use it to find if we are in ./src or base of project, then normalize it
 	// by removing '/src' from end of path so we can find where our support files are located
@@ -68,8 +69,7 @@ func main() {
 										myetcd.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+
 											normalizeKeyNames(modifyKeyBox.Text()), modifyValueBox.Text())
 
-										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
-										resultMsgBox.SetText(parseMapToString(&config, values))
+										readValuesAndSendToMsgBox(&config, sendToMsgBoxCh)
 										modifyKeyBox.SetText("")
 										modifyValueBox.SetText("")
 									}()
@@ -85,8 +85,7 @@ func main() {
 										if numDeleted < 1 {
 											walk.MsgBox(nil, "Error", "No records found", walk.MsgBoxIconInformation)
 										}
-										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
-										resultMsgBox.SetText(parseMapToString(&config, values))
+										readValuesAndSendToMsgBox(&config, sendToMsgBoxCh)
 										modifyKeyBox.SetText("")
 										modifyValueBox.SetText("")
 									}()
@@ -109,10 +108,7 @@ func main() {
 								MaxSize: Size{100, 20},
 								Text:    "Refresh",
 								OnClicked: func() {
-									go func() {
-										values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
-										resultMsgBox.SetText(parseMapToString(&config, values))
-									}()
+									readValuesAndSendToMsgBox(&config, sendToMsgBoxCh)
 								},
 							},
 						},
@@ -134,9 +130,10 @@ func main() {
 							PushButton{
 								MinSize: Size{100, 20},
 								MaxSize: Size{100, 20},
-								Text:    "Refresh",
+								Text:    "Apply",
 								OnClicked: func() {
-									// *** NOT YET IMPLEMENTED ***
+									config.Etcd.BaseKeyToUse = baseKeyToUseBox.Text()
+									readValuesAndSendToMsgBox(&config, sendToMsgBoxCh)
 								},
 							},
 						},
@@ -171,9 +168,7 @@ func main() {
 								MaxSize: Size{100, 20},
 								Text:    "Export DB",
 								OnClicked: func() {
-									go func() {
-										dbImportExport(&config, importExportFileBox.Text(), "export")
-									}()
+									dbImportExport(&config, importExportFileBox.Text(), "export")
 								},
 							},
 							PushButton{
@@ -181,9 +176,7 @@ func main() {
 								MaxSize: Size{100, 20},
 								Text:    "Import DB",
 								OnClicked: func() {
-									go func() {
-										dbImportExport(&config, importExportFileBox.Text(), "import")
-									}()
+									dbImportExport(&config, importExportFileBox.Text(), "import")
 								},
 							},
 							TextLabel{
@@ -203,9 +196,7 @@ func main() {
 		},
 	}.Create()
 
-	sendToMsgBoxCh := make(chan map[string][]byte)
-
-	// These need their own thread since they also loop forever
+	// These need their own thread since they all loop forever
 	go refreshUpdateTime(updateTimeTextBox)
 	go readEtcdContinuously(&config, sendToMsgBoxCh)
 	go mainLoop(&config, sendToMsgBoxCh, resultMsgBox)
