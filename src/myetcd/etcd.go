@@ -9,6 +9,8 @@ import (
 	"go.etcd.io/etcd/clientv3"
 )
 
+const dbTimeoutTime = 5
+
 // ConnToEtcd connects to an ETCD database using TLS settings and returns the connection object
 func connToEtcd(certPath *string, endpoints *[]string) *clientv3.Client {
 	tlsInfo := transport.TLSInfo{
@@ -23,7 +25,7 @@ func connToEtcd(certPath *string, endpoints *[]string) *clientv3.Client {
 
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   *endpoints,
-		DialTimeout: 5 * time.Second,
+		DialTimeout: dbTimeoutTime * time.Second,
 		TLS:         tlsConfig,
 	})
 	if err != nil {
@@ -39,7 +41,7 @@ func ReadFromEtcd(certPath *string, endpoints *[]string, keyToRead string) (map[
 	cli := connToEtcd(certPath, endpoints)
 	defer cli.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeoutTime*time.Second)
 	defer cancel()
 
 	response, err := cli.Get(ctx, keyToRead, clientv3.WithPrefix())
@@ -62,7 +64,7 @@ func WriteToEtcd(certPath *string, endpoints *[]string, keyToWrite string, value
 	cli := connToEtcd(certPath, endpoints)
 	defer cli.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeoutTime*time.Second)
 	defer cancel()
 
 	_, err := cli.Put(ctx, keyToWrite, valueToWrite)
@@ -77,7 +79,7 @@ func DeleteFromEtcd(certPath *string, endpoints *[]string, keyToDelete string) i
 	cli := connToEtcd(certPath, endpoints)
 	defer cli.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeoutTime*time.Second)
 	defer cancel()
 
 	response, err := cli.Delete(ctx, keyToDelete)
