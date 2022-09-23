@@ -20,11 +20,10 @@ import (
 type Config struct {
 	Etcd struct {
 		// var name has to be uppercase here or it won't work
-		Endpoints    []string      `yaml:"endpoints"`
-		BaseKeyToUse string        `yaml:"baseKeyToUse"`
-		Timeout      int           `yaml:"timeout"`
-		SleepSeconds time.Duration `yaml:"sleepSeconds"`
-		CertPath     string        `yaml:"certpath"`
+		Endpoints    []string `yaml:"endpoints"`
+		BaseKeyToUse string   `yaml:"baseKeyToUse"`
+		Timeout      int      `yaml:"timeout"`
+		CertPath     string   `yaml:"certpath"`
 	}
 }
 
