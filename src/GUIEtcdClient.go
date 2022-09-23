@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"os"
-	"time"
 
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -11,16 +10,17 @@ import (
 )
 
 var version string // to be auto-added with -ldflags at build time
-var lastUpdate time.Time
 var mw *walk.MainWindow
 var clientID, exePath string
+var dbValues map[string][]byte
+var sendToMsgBoxCh, watchedChangeCh chan map[string][]byte
 
 // Program entry point
 func main() {
 	var modifyValueBox, modifyKeyBox, resultMsgBox, baseKeyToUseBox *walk.TextEdit
-	var updateTimeTextBox *walk.TextLabel
 	var importExportFileBox *walk.LineEdit
-	sendToMsgBoxCh := make(chan map[string][]byte)
+	sendToMsgBoxCh = make(chan map[string][]byte)
+	watchedChangeCh = make(chan map[string][]byte)
 
 	// Get CWD and use it to find if we are in ./src or base of project, then normalize it
 	// by removing '/src' from end of path so we can find where our support files are located
@@ -69,7 +69,7 @@ func main() {
 										myetcd.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+
 											normalizeKeyNames(modifyKeyBox.Text()), modifyValueBox.Text())
 
-										readValuesAndSendToMsgBox(&config, sendToMsgBoxCh)
+										readValuesAndSendToMsgBox(&config)
 										modifyKeyBox.SetText("")
 										modifyValueBox.SetText("")
 									}()
@@ -85,7 +85,7 @@ func main() {
 										if numDeleted < 1 {
 											walk.MsgBox(nil, "Error", "No records found", walk.MsgBoxIconInformation)
 										}
-										readValuesAndSendToMsgBox(&config, sendToMsgBoxCh)
+										readValuesAndSendToMsgBox(&config)
 										modifyKeyBox.SetText("")
 										modifyValueBox.SetText("")
 									}()
@@ -108,7 +108,7 @@ func main() {
 								MaxSize: Size{100, 20},
 								Text:    "Refresh",
 								OnClicked: func() {
-									readValuesAndSendToMsgBox(&config, sendToMsgBoxCh)
+									readValuesAndSendToMsgBox(&config)
 								},
 							},
 						},
@@ -133,7 +133,7 @@ func main() {
 								Text:    "Apply",
 								OnClicked: func() {
 									config.Etcd.BaseKeyToUse = baseKeyToUseBox.Text()
-									readValuesAndSendToMsgBox(&config, sendToMsgBoxCh)
+									readValuesAndSendToMsgBox(&config)
 								},
 							},
 						},
@@ -159,10 +159,6 @@ func main() {
 					ScrollView{
 						Layout: HBox{MarginsZero: true},
 						Children: []Widget{
-							TextLabel{
-								AssignTo: &updateTimeTextBox,
-								Text:     "Last update: ",
-							},
 							PushButton{
 								MinSize: Size{100, 20},
 								MaxSize: Size{100, 20},
@@ -197,9 +193,10 @@ func main() {
 	}.Create()
 
 	// These need their own thread since they all loop forever
-	go refreshUpdateTime(updateTimeTextBox)
-	go readEtcdContinuously(&config, sendToMsgBoxCh)
-	go mainLoop(&config, sendToMsgBoxCh, resultMsgBox)
+	go readValuesAndSendToMsgBox(&config)
+	go myetcd.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh)
+	go updateWatchedChanges()
+	go mainLoop(&config, resultMsgBox)
 
 	mw.Run()
 }

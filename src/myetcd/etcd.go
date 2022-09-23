@@ -59,6 +59,24 @@ func ReadFromEtcd(certPath *string, endpoints *[]string, keyToRead string) (map[
 	return answer, nil
 }
 
+// WatchReadFromEtcd watches all sub-prefixes from a given key and returns any
+// changes to them in a (string, byte array) map structure
+func WatchReadFromEtcd(certPath *string, endpoints *[]string, keyToRead string, watchedChangeCh chan map[string][]byte) {
+	cli := connToEtcd(certPath, endpoints)
+	defer cli.Close()
+	modifiedKv := make(map[string][]byte)
+
+	rchan := cli.Watch(context.Background(), keyToRead, clientv3.WithPrefix())
+	for wresp := range rchan {
+		for _, ev := range wresp.Events {
+			// ev.Type,  ev.Kv.Key,  ev.Kv.Value
+			keyval := string(ev.Kv.Key)
+			modifiedKv[keyval] = ev.Kv.Value
+			watchedChangeCh <- modifiedKv
+		}
+	}
+}
+
 // WriteToEtcd writes once to a given key in etcd
 func WriteToEtcd(certPath *string, endpoints *[]string, keyToWrite string, valueToWrite string) {
 	cli := connToEtcd(certPath, endpoints)

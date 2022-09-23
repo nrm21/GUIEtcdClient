@@ -74,30 +74,6 @@ func normalizeKeyNames(value string) string {
 	return value
 }
 
-// Make map data pretty printable, alphabetically sorted and remove base key from from fromt of all keys
-func parseMapToString(config *Config, values map[string][]byte) string {
-	orderedMsg := ""
-	var msg []string
-
-	for k, v := range values {
-		// remove BaseKeyToUse
-		k = strings.Replace(k, config.Etcd.BaseKeyToUse+"/", "", 1)
-		// trim null bytes before sending to output (allows safe printing of message)
-		v = bytes.ReplaceAll(v, []byte("\x00"), []byte(" "))
-
-		msg = append(msg, k+": "+string(v)+"\r\n")
-	}
-	sort.Strings(msg)
-	for _, v := range msg {
-		orderedMsg += v
-	}
-
-	// Every time we run this we send to chan to display on screen, so lets reset the update timer here also
-	lastUpdate = time.Now()
-
-	return orderedMsg
-}
-
 // Runs when we click either the export or import buttons at the bottom of GUI
 func dbImportExport(config *Config, filename, mode string) {
 	if mode == "import" {
@@ -145,37 +121,54 @@ func dbImportExport(config *Config, filename, mode string) {
 	}
 }
 
-// Anytime this is called it will read the current values from etcd for the
-// given basekey, and send them to the channel.  This should not need to be
-// run async since the mainloop() function is forever waiting for new things
-//  to come in from the channel
-func readValuesAndSendToMsgBox(config *Config, sendToMsgBoxCh chan map[string][]byte) {
-	values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
-	sendToMsgBoxCh <- values
-}
+// Make map data pretty printable, alphabetically sorted and remove base key from from fromt of all keys
+func parseMapToString(config *Config, values map[string][]byte) string {
+	orderedMsg := ""
+	var msg []string
 
-// Run by main(), updates the text box until program exit
-func refreshUpdateTime(updateTimeTextBox *walk.TextLabel) {
-	for {
-		updateTimeTextBox.SetText("Last update: " + fmt.Sprintf("%.0f", time.Since(lastUpdate).Seconds()))
-		time.Sleep(500 * time.Millisecond) // just for human readability, dont refresh this too often to save on cpu
+	for k, v := range values {
+		// remove BaseKeyToUse
+		k = strings.Replace(k, config.Etcd.BaseKeyToUse+"/", "", 1)
+		// trim null bytes before sending to output (allows safe printing of message)
+		v = bytes.ReplaceAll(v, []byte("\x00"), []byte(" "))
+
+		msg = append(msg, k+": "+string(v)+"\r\n")
 	}
+	sort.Strings(msg)
+	for _, v := range msg {
+		orderedMsg += v
+	}
+
+	return orderedMsg
 }
 
-// Run by main(), continuously prints read variables to screen except the ones we wrote
-func readEtcdContinuously(config *Config, sendToMsgBoxCh chan map[string][]byte) {
+// This function is called after the watcher chan returns with changes and
+// compares the changes to what exists and modifies only the needed ones
+// then finally it updates the messagebox
+func updateWatchedChanges() {
 	for {
-		readValuesAndSendToMsgBox(config, sendToMsgBoxCh)
-
-		// sleep until we haven't updated for more than the sleep duration
-		for time.Since(lastUpdate).Seconds() < float64(config.Etcd.SleepSeconds) {
-			time.Sleep(1 * time.Second)
+		newValues := <-watchedChangeCh
+		for key, value := range newValues {
+			if string(dbValues[key]) != string(value) {
+				dbValues[key] = value
+			}
 		}
+
+		sendToMsgBoxCh <- dbValues
 	}
+}
+
+// Anytime this is called it will read the current values from etcd for the
+// given basekey, and send them to the channel.  It might need to be run async
+// depending on where it's used in the codebase since it waits for info forever
+// to send to the messagebox until program close.
+func readValuesAndSendToMsgBox(config *Config) {
+	dbValues, _ = myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
+	sendToMsgBoxCh <- dbValues
 }
 
 // Run by main(), waits for a response to the channel to update the message box until program exit
-func mainLoop(config *Config, sendToMsgBoxCh chan map[string][]byte, resultMsgBox *walk.TextEdit) {
+func mainLoop(config *Config, resultMsgBox *walk.TextEdit) {
 	for {
 		msg := parseMapToString(config, <-sendToMsgBoxCh) // will wait for sending channel
 		resultMsgBox.SetText(msg)
