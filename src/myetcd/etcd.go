@@ -71,32 +71,17 @@ func WatchReadFromEtcd(certPath *string, endpoints *[]string, keyToRead string, 
 	modifiedKv := make(map[string][]byte)
 
 	watchChan := cli.Watch(context.Background(), keyToRead, clientv3.WithPrefix())
-	for {
-		select {
-		case <-watchChan:
-			wc := <-watchChan
+	go func() {
+		for wc := range watchChan {
 			for _, ev := range wc.Events {
-				// ev.Type,  ev.Kv.Key,  ev.Kv.Value
 				keyval := string(ev.Kv.Key)
 				modifiedKv[keyval] = ev.Kv.Value
 				watchedChangeCh <- modifiedKv
 			}
-		default:
-			// check to see if we should close the watcher to start one on a
-			// different key.  If not we should just wait a short time then
-			// return control to the main for loop to check for more watch
-			// events in the code above.
-			select {
-			case _, ok := <-closeWacher:
-				if ok {
-					fmt.Printf("Killing watcher for %s!\n", keyToRead)
-					return
-				}
-			case <-time.After(250 * time.Millisecond):
-				continue
-			}
 		}
-	}
+	}()
+	<-closeWacher // should only stop blocking if we close the channel
+	fmt.Printf("Killing watcher for %s!\n", keyToRead)
 }
 
 // WriteToEtcd writes once to a given key in etcd
