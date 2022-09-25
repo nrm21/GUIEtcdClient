@@ -2,6 +2,7 @@ package myetcd
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -60,19 +61,40 @@ func ReadFromEtcd(certPath *string, endpoints *[]string, keyToRead string) (map[
 }
 
 // WatchReadFromEtcd watches all sub-prefixes from a given key and returns any
-// changes to them in a (string, byte array) map structure
-func WatchReadFromEtcd(certPath *string, endpoints *[]string, keyToRead string, watchedChangeCh chan map[string][]byte) {
+// changes to them in a (string, byte array) map structure, this fuction loops
+// forever unless broken from explicitly
+func WatchReadFromEtcd(certPath *string, endpoints *[]string, keyToRead string, watchedChangeCh chan map[string][]byte, closeWacher chan bool) {
+	fmt.Printf("Now watching %s!\n", keyToRead)
+
 	cli := connToEtcd(certPath, endpoints)
 	defer cli.Close()
 	modifiedKv := make(map[string][]byte)
 
-	rchan := cli.Watch(context.Background(), keyToRead, clientv3.WithPrefix())
-	for wresp := range rchan {
-		for _, ev := range wresp.Events {
-			// ev.Type,  ev.Kv.Key,  ev.Kv.Value
-			keyval := string(ev.Kv.Key)
-			modifiedKv[keyval] = ev.Kv.Value
-			watchedChangeCh <- modifiedKv
+	watchChan := cli.Watch(context.Background(), keyToRead, clientv3.WithPrefix())
+	for {
+		select {
+		case <-watchChan:
+			wc := <-watchChan
+			for _, ev := range wc.Events {
+				// ev.Type,  ev.Kv.Key,  ev.Kv.Value
+				keyval := string(ev.Kv.Key)
+				modifiedKv[keyval] = ev.Kv.Value
+				watchedChangeCh <- modifiedKv
+			}
+		default:
+			// check to see if we should close the watcher to start one on a
+			// different key.  If not we should just wait a short time then
+			// return control to the main for loop to check for more watch
+			// events in the code above.
+			select {
+			case _, ok := <-closeWacher:
+				if ok {
+					fmt.Printf("Killing watcher for %s!\n", keyToRead)
+					return
+				}
+			case <-time.After(250 * time.Millisecond):
+				continue
+			}
 		}
 	}
 }

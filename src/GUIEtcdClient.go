@@ -14,6 +14,7 @@ var mw *walk.MainWindow
 var clientID, exePath string
 var dbValues map[string][]byte
 var sendToMsgBoxCh, watchedChangeCh chan map[string][]byte
+var closeWatcher chan bool
 
 // Program entry point
 func main() {
@@ -21,6 +22,7 @@ func main() {
 	var importExportFileBox *walk.LineEdit
 	sendToMsgBoxCh = make(chan map[string][]byte)
 	watchedChangeCh = make(chan map[string][]byte)
+	closeWatcher = make(chan bool)
 
 	// Get CWD and use it to find if we are in ./src or base of project, then normalize it
 	// by removing '/src' from end of path so we can find where our support files are located
@@ -132,8 +134,10 @@ func main() {
 								MaxSize: Size{100, 20},
 								Text:    "Apply",
 								OnClicked: func() {
+									closeWatcher <- true
 									config.Etcd.BaseKeyToUse = baseKeyToUseBox.Text()
 									readValuesAndSendToMsgBox(&config)
+									go myetcd.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh, closeWatcher)
 								},
 							},
 						},
@@ -194,7 +198,7 @@ func main() {
 
 	// These need their own thread since they all loop forever
 	go readValuesAndSendToMsgBox(&config)
-	go myetcd.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh)
+	go myetcd.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh, closeWatcher)
 	go updateWatchedChanges()
 	go mainLoop(&config, resultMsgBox)
 
