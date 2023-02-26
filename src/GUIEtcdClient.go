@@ -23,6 +23,8 @@ func main() {
 	sendToMsgBoxCh = make(chan map[string][]byte)
 	watchedChangeCh = make(chan map[string][]byte)
 	closeWatcher = make(chan bool)
+	windowSizeH := 1100
+	windowSizeV := 950
 
 	// Get CWD and use it to find if we are in ./src or base of project, then normalize it
 	// by removing '/src' from end of path so we can find where our support files are located
@@ -54,10 +56,11 @@ func main() {
 	MainWindow{
 		AssignTo: &mw,
 		Title:    "Etcd Client",
-		Size:     Size{1024, 768},
+		Size:     Size{windowSizeH, windowSizeV},
 		Layout:   VBox{},
 		Children: []Widget{
 			HSplitter{
+				MaxSize: Size{150, 23},
 				Children: []Widget{
 					ScrollView{
 						Layout: HBox{MarginsZero: true},
@@ -118,6 +121,7 @@ func main() {
 				},
 			},
 			HSplitter{
+				MaxSize: Size{150, 23},
 				Children: []Widget{
 					ScrollView{
 						Layout: HBox{MarginsZero: true},
@@ -149,8 +153,12 @@ func main() {
 					TextEdit{
 						AssignTo: &resultMsgBox,
 						ReadOnly: true,
-						MinSize:  Size{600, 595},
-						VScroll:  true,
+						MinSize:  Size{windowSizeH, windowSizeV - 175},
+						OnBoundsChanged: func() {
+							// resultMsgBox.SetBounds(walk.Rectangle{0, 0, mw.Width() - 40, mw.Height() - 175})
+							resultMsgBox.SetWidth(mw.Width() - 40)
+						},
+						VScroll: true,
 						Font: Font{
 							Family:    "Ariel",
 							PointSize: 15,
@@ -159,6 +167,7 @@ func main() {
 				},
 			},
 			HSplitter{
+				MaxSize: Size{150, 32},
 				Children: []Widget{
 					ScrollView{
 						Layout: HBox{MarginsZero: true},
@@ -180,7 +189,9 @@ func main() {
 								},
 							},
 							TextLabel{
-								Text: "Import/Export File: ",
+								MinSize: Size{100, 20},
+								MaxSize: Size{100, 20},
+								Text:    "Import/Export File: ",
 							},
 							LineEdit{
 								AssignTo: &importExportFileBox,
