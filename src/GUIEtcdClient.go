@@ -155,7 +155,6 @@ func main() {
 						ReadOnly: true,
 						MinSize:  Size{windowSizeH, windowSizeV - 175},
 						OnBoundsChanged: func() {
-							// resultMsgBox.SetBounds(walk.Rectangle{0, 0, mw.Width() - 40, mw.Height() - 175})
 							resultMsgBox.SetWidth(mw.Width() - 40)
 						},
 						VScroll: true,
