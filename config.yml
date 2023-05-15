@@ -4,6 +4,5 @@ etcd:
     - 10.150.30.18:2379
     - 10.150.30.19:2379
   baseKeyToUse: /nate/CalcBandwidth
-  #baseKeyToUse: /registry/apiregistration.k8s.io/apiservices/v1.events.k8s.io
   timeout:        5
   certpath:       E:\Documents\_Nate\Computer Related\Private keys\Etcd Certs
