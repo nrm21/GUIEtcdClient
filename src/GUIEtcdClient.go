@@ -6,7 +6,7 @@ import (
 
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
-	"github.com/nrm21/EtcdChat/src/myetcd"
+	"github.com/nrm21/support"
 )
 
 var version string // to be auto-added with -ldflags at build time
@@ -71,7 +71,7 @@ func main() {
 								Text:    "Modify",
 								OnClicked: func() {
 									go func() {
-										myetcd.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+
+										support.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+
 											normalizeKeyNames(modifyKeyBox.Text()), modifyValueBox.Text())
 
 										readValuesAndSendToMsgBox(&config)
@@ -86,7 +86,7 @@ func main() {
 								Text:    "Delete",
 								OnClicked: func() {
 									go func() {
-										numDeleted := myetcd.DeleteFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+normalizeKeyNames(modifyKeyBox.Text()))
+										numDeleted := support.DeleteFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+normalizeKeyNames(modifyKeyBox.Text()))
 										if numDeleted < 1 {
 											walk.MsgBox(nil, "Error", "No records found", walk.MsgBoxIconInformation)
 										}
@@ -141,7 +141,7 @@ func main() {
 									closeWatcher <- true
 									config.Etcd.BaseKeyToUse = baseKeyToUseBox.Text()
 									readValuesAndSendToMsgBox(&config)
-									go myetcd.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh, closeWatcher)
+									go support.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh, closeWatcher)
 								},
 							},
 						},
@@ -208,7 +208,7 @@ func main() {
 
 	// These need their own thread since they all loop forever
 	go readValuesAndSendToMsgBox(&config)
-	go myetcd.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh, closeWatcher)
+	go support.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh, closeWatcher)
 	go updateWatchedChanges()
 	go mainLoop(&config, resultMsgBox)
 

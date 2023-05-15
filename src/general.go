@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/lxn/walk"
-	"github.com/nrm21/EtcdChat/src/myetcd"
 	"github.com/nrm21/support"
 	"gopkg.in/yaml.v2"
 )
@@ -92,14 +91,14 @@ func dbImportExport(config *Config, filename, mode string) {
 		}
 		// and write them to Etcd
 		for key, value := range values {
-			myetcd.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, key, value)
+			support.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, key, value)
 		}
 	} else if mode == "export" {
 		path, _ := os.Getwd()
 		filename = path + "\\backup.json"
 
 		// read values from Etcd and marshal them into JSON
-		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
+		values, _ := support.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
 
 		// and convert bytes to string in new map before exporting
 		stringifiedValues := make(map[string]string)
@@ -162,7 +161,7 @@ func updateWatchedChanges() {
 // depending on where it's used in the codebase since it waits for info forever
 // to send to the messagebox until program close.
 func readValuesAndSendToMsgBox(config *Config) {
-	dbValues, _ = myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
+	dbValues, _ = support.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
 	sendToMsgBoxCh <- dbValues
 }
 
