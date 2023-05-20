@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"sort"
@@ -161,7 +162,12 @@ func updateWatchedChanges() {
 // depending on where it's used in the codebase since it waits for info forever
 // to send to the messagebox until program close.
 func readValuesAndSendToMsgBox(config *Config) {
-	dbValues, _ = support.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
+	var err error
+	dbValues, err = support.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
+	if err != nil {
+		walk.MsgBox(nil, "Fatal Error", "Fatal: "+err.Error()+"\nPossible authentication failure", walk.MsgBoxIconError)
+		log.Fatal(err.Error())
+	}
 	sendToMsgBoxCh <- dbValues
 }
 
