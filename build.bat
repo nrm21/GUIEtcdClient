@@ -1,8 +1,8 @@
 @rem	Get the contents of the VERSION file and increment the most minor digit
 for /f "tokens=1,2,3 delims=." %%a in (VERSION) do (
-  set var1=%%a
-  set var2=%%b
-  set /a var3=%%c+1
+	set var1=%%a
+	set var2=%%b
+	set /a var3=%%c+1
 )
 
 @rem	And put it back in the file, this outputs to file with no newline
@@ -11,7 +11,7 @@ for /f "tokens=1,2,3 delims=." %%a in (VERSION) do (
 
 @rem	Now build the program with the new version
 for /f "tokens=* delims=" %%a in (VERSION) do (
-  go build -v -ldflags="-X main.version=%%a -H windowsgui" -o "GUIEtcdClient.exe" ./src
+  go build -ldflags="-w -s -X main.version=%%a -H windowsgui" -o "GUIEtcdClient.exe" ./src
 )
 
 @rem and move them to the correct dir
