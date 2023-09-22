@@ -1,6 +1,6 @@
 NAME        ?= GUIEtcdClient.exe
 OUTPUT_BIN  ?= .\bin\${NAME}
-SOURCE      ?= .\src
+SOURCE      ?= .\cmd
 GO_FLAGS    ?=
 GO_TAGS     ?= walk_use_cgo
 CGO_ENABLED ?= 1

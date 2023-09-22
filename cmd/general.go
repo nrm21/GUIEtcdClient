@@ -74,13 +74,13 @@ func normalizeKeyNames(value string) string {
 }
 
 // Runs when we click either the export or import buttons at the bottom of GUI
-func dbImportExport(config *Config, filename, mode string) {
+func dbImportExport(config *Config, filedir, mode string) {
 	if mode == "import" {
-		if filename == "" {
-			walk.MsgBox(nil, "Error", "Please put in a filename", walk.MsgBoxIconError)
+		if filedir == "" {
+			walk.MsgBox(nil, "Error", "Please put in a dir location for the filename", walk.MsgBoxIconError)
 		}
 		// read the bytes from file
-		filebytes, err := os.ReadFile(filename)
+		filebytes, err := os.ReadFile(filedir)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -95,8 +95,12 @@ func dbImportExport(config *Config, filename, mode string) {
 			support.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, key, value)
 		}
 	} else if mode == "export" {
-		path, _ := os.Getwd()
-		filename = path + "\\backup.json"
+		if filedir == "" {
+			path, _ := os.Getwd()
+			filedir = path + "\\backup.json"
+		} else {
+			filedir = filedir + "\\backup.json"
+		}
 
 		// read values from Etcd and marshal them into JSON
 		values, _ := support.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
@@ -111,7 +115,7 @@ func dbImportExport(config *Config, filename, mode string) {
 		if err != nil {
 			fmt.Println(err)
 		} else { // and write it to file
-			err = os.WriteFile(filename, filebytes, 0644)
+			err = os.WriteFile(filedir, filebytes, 0644)
 			if err != nil {
 				fmt.Println(err)
 			}

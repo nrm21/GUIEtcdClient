@@ -19,17 +19,17 @@ var closeWatcher chan bool
 // Program entry point
 func main() {
 	var modifyValueBox, modifyKeyBox, resultMsgBox, baseKeyToUseBox *walk.TextEdit
-	var importExportFileBox *walk.LineEdit
+	var importExportDirBox *walk.LineEdit
 	sendToMsgBoxCh = make(chan map[string][]byte)
 	watchedChangeCh = make(chan map[string][]byte)
 	closeWatcher = make(chan bool)
 	windowSizeH := 1100
 	windowSizeV := 950
 
-	// Get CWD and use it to find if we are in ./src or base of project, then normalize it
-	// by removing '/src' from end of path so we can find where our support files are located
+	// Get CWD and use it to find if we are in 'cmd' or base of project, then normalize it
+	// by removing '/cmd' from end of path so we can find where our support files are located
 	exePath, _ = os.Getwd()
-	if exePath[len(exePath)-4:] == "\\src" || exePath[len(exePath)-4:] == "\\bin" {
+	if exePath[len(exePath)-4:] == "\\cmd" || exePath[len(exePath)-4:] == "\\bin" {
 		exePath = exePath[:len(exePath)-4]
 	}
 
@@ -176,7 +176,7 @@ func main() {
 								MaxSize: Size{100, 20},
 								Text:    "Export DB",
 								OnClicked: func() {
-									dbImportExport(&config, importExportFileBox.Text(), "export")
+									dbImportExport(&config, importExportDirBox.Text(), "export")
 								},
 							},
 							PushButton{
@@ -184,16 +184,16 @@ func main() {
 								MaxSize: Size{100, 20},
 								Text:    "Import DB",
 								OnClicked: func() {
-									dbImportExport(&config, importExportFileBox.Text(), "import")
+									dbImportExport(&config, importExportDirBox.Text(), "import")
 								},
 							},
 							TextLabel{
 								MinSize: Size{100, 20},
 								MaxSize: Size{100, 20},
-								Text:    "Import/Export File: ",
+								Text:    "Import/Export Dir: ",
 							},
 							LineEdit{
-								AssignTo: &importExportFileBox,
+								AssignTo: &importExportDirBox,
 								Text:     "",
 							},
 							TextLabel{
