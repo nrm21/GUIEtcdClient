@@ -75,8 +75,8 @@ func main() {
 											normalizeKeyNames(modifyKeyBox.Text()), modifyValueBox.Text())
 
 										readValuesAndSendToMsgBox(&config)
-										modifyKeyBox.SetText("")
-										modifyValueBox.SetText("")
+										// modifyKeyBox.SetText("")
+										// modifyValueBox.SetText("")
 									}()
 								},
 							},
