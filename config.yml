@@ -1,8 +1,8 @@
 etcd:
   endpoints:
-    - 10.150.30.17:2379
-    - 10.150.30.19:2379
+    - 10.150.30.21:2379
     - 10.150.30.22:2379
-  baseKeyToUse: /nate/CalcBandwidth
+    - 10.150.30.23:2379
+  baseKeyToUse: /nate
   timeout:        5
   certpath:       E:\Documents\_Nate\Computer Related\Private keys\Etcd Certs
