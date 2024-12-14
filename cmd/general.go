@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"MyLibs/myetcd"
+
 	"github.com/lxn/walk"
-	"github.com/nrm21/support"
-	"gopkg.in/yaml.v2"
 )
 
 // Config struct
@@ -25,21 +25,6 @@ type Config struct {
 		Timeout      int      `yaml:"timeout"`
 		CertPath     string   `yaml:"certpath"`
 	}
-}
-
-// Unmarshals the config contents from file into memory
-func getConfigContentsFromYaml(filename string) (Config, error) {
-	var conf Config
-	file, err := support.ReadConfigFileContents(filename)
-	if err != nil {
-		return conf, err
-	}
-	err = yaml.Unmarshal(file, &conf)
-	if err != nil {
-		return conf, err
-	}
-
-	return conf, nil
 }
 
 // Returns a string of (up to) the nanosecond level of right now (at runtime)
@@ -92,7 +77,7 @@ func dbImportExport(config *Config, filedir, mode string) {
 		}
 		// and write them to Etcd
 		for key, value := range values {
-			support.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, key, value)
+			myetcd.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, key, value)
 		}
 	} else if mode == "export" {
 		if filedir == "" {
@@ -103,7 +88,7 @@ func dbImportExport(config *Config, filedir, mode string) {
 		}
 
 		// read values from Etcd and marshal them into JSON
-		values, _ := support.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
+		values, _ := myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
 
 		// and convert bytes to string in new map before exporting
 		stringifiedValues := make(map[string]string)
@@ -167,7 +152,7 @@ func updateWatchedChanges() {
 // to send to the messagebox until program close.
 func readValuesAndSendToMsgBox(config *Config) {
 	var err error
-	dbValues, err = support.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
+	dbValues, err = myetcd.ReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse)
 	if err != nil {
 		walk.MsgBox(nil, "Fatal Error", "Fatal: "+err.Error()+"\nPossible authentication failure", walk.MsgBoxIconError)
 		log.Fatal(err.Error())

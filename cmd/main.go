@@ -4,9 +4,11 @@ import (
 	"errors"
 	"os"
 
+	"MyLibs/myetcd"
+	"MyLibs/mysupport"
+
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
-	"github.com/nrm21/support"
 )
 
 var version string // to be auto-added with -ldflags at build time
@@ -33,7 +35,9 @@ func main() {
 		exePath = exePath[:len(exePath)-4]
 	}
 
-	config, err := getConfigContentsFromYaml(exePath + "\\config.yml")
+	config := Config{}
+	// Unmarshals the config contents from file into memory
+	err := mysupport.GetConfigContentsFromYaml(exePath+"\\config.yml", &config)
 	// if the config file doesnt exist
 	if err != nil {
 		walk.MsgBox(nil, "Fatal Error", "Fatal: "+err.Error(), walk.MsgBoxIconError)
@@ -71,7 +75,7 @@ func main() {
 								Text:    "Modify",
 								OnClicked: func() {
 									go func() {
-										support.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+
+										myetcd.WriteToEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+
 											normalizeKeyNames(modifyKeyBox.Text()), modifyValueBox.Text())
 
 										readValuesAndSendToMsgBox(&config)
@@ -86,7 +90,7 @@ func main() {
 								Text:    "Delete",
 								OnClicked: func() {
 									go func() {
-										numDeleted := support.DeleteFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+normalizeKeyNames(modifyKeyBox.Text()))
+										numDeleted := myetcd.DeleteFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse+"/"+normalizeKeyNames(modifyKeyBox.Text()))
 										if numDeleted < 1 {
 											walk.MsgBox(nil, "Error", "No records found", walk.MsgBoxIconInformation)
 										}
@@ -141,7 +145,7 @@ func main() {
 									closeWatcher <- true
 									config.Etcd.BaseKeyToUse = baseKeyToUseBox.Text()
 									readValuesAndSendToMsgBox(&config)
-									go support.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh, closeWatcher)
+									go myetcd.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh, closeWatcher)
 								},
 							},
 						},
@@ -208,7 +212,7 @@ func main() {
 
 	// These need their own thread since they all loop forever
 	go readValuesAndSendToMsgBox(&config)
-	go support.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh, closeWatcher)
+	go myetcd.WatchReadFromEtcd(&config.Etcd.CertPath, &config.Etcd.Endpoints, config.Etcd.BaseKeyToUse, watchedChangeCh, closeWatcher)
 	go updateWatchedChanges()
 	go mainLoop(&config, resultMsgBox)
 
